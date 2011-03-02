@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!-- saved from url=(0070)http://localhost:55277/Level/Play/5b278670-5474-4c27-9678-3caf24e4e1e2 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Start</title>
+    <link href="./play.2-27-2011_files/ResetStyleSheet.css" rel="stylesheet" type="text/css">
+    <link href="./play.2-27-2011_files/Site.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" type="text/css" href="./play.2-27-2011_files/jquery-ui.css">
+    <script src="./play.2-27-2011_files/jquery.min.js" type="text/javascript"></script>
+    <script src="./play.2-27-2011_files/jquery-ui.min.js" type="text/javascript"></script>
+    </head>
+<body>
+    <script type="text/javascript" src="./play.2-27-2011_files/World.js"></script>
+<script type="text/javascript">
+    // Create world
+    $(function() {
+        world = new World(document.getElementById('playground'));
+        world.setMap('wwwwwwwwwwwwww0   Bhd BWdww    wwwB Wwww hh B      ww  h B      wwww  w d vv wwdB  w      wwwwwwwwwwwwww', 13, 8);
+    });
+</script>
+<script type="text/javascript" src="./play.2-27-2011_files/Play.js"></script>
+
+<div id="header">
+    <button id="undoButton" class="actionButton"><u>U</u>ndo</button>
+    <a id="redoButton" class="actionButton">Red<u>o</u></a>
+    <a id="restartButton" class="actionButton"><u>R</u>estart</a>
+</div>
+
+<div id="wrapper">
+  
+    <canvas id="playground" width="1299" height="655"></canvas>
+</div>
+
+    <img id="tilesImg" src="./play.2-27-2011_files/tiles.gif" style="display:none">
+    <img id="playersImg" src="./play.2-27-2011_files/players.gif" style="display:none">
+    
+<script type="text/javascript">
+    //var authCallback;
+    function setAuthCallback(callback) {
+        $.ajaxSetup({
+            statusCode: {
+                401: function () {
+                    var dlg = $('#authDialog');
+                    dlg.dialog('option', { close: callback });
+                    dlg.dialog('open');
+                }
+            }
+        });
+    }
+
+    $(function () {
+        $('#authDialog').dialog({
+            title: "Log in to Continue",
+            autoOpen: false,
+            modal: true,
+            buttons: {
+                'Log On': function () {
+                    var data = {
+                        'UserName': $('#UserName').val(),
+                        'Password': $('#Password').val(),
+                        'RememberMe': $('#RememberMe').attr('checked')
+                    };
+                    $.post('/Account/LogOn', data, function (result, status) {
+                        if (result.success === true) { // login success
+                            $('#authDialog').dialog('close');
+                        } else {
+                            $('#authError').html(result.message).show().delay(2000).hide('fast');
+                        }
+                    }, "json");
+                }
+            }
+        });
+    });
+</script>
+
+
+<div style="display: none; z-index: 1000; outline-width: 0px; outline-style: initial; outline-color: initial; position: absolute; " class="ui-dialog ui-widget ui-widget-content ui-corner-all  ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-dialog-title-authDialog"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span class="ui-dialog-title" id="ui-dialog-title-authDialog">Log in to Continue</span><a href="http://localhost:55277/Level/Play/5b278670-5474-4c27-9678-3caf24e4e1e2#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="authDialog" style="" class="ui-dialog-content ui-widget-content">
+    <span id="authBody"></span>
+    <div>
+        <fieldset>
+            <legend>Account Information</legend>
+            <div class="editor-label">
+                <label for="UserName">
+                    User name</label>
+            </div>
+            <div class="editor-field">
+                <input id="UserName" name="UserName" type="text" value="">
+            </div>
+            <div class="editor-label">
+                <label for="Password">
+                    Password</label>
+            </div>
+            <div class="editor-field">
+                <input id="Password" name="Password" type="password">
+            </div>
+            <div class="editor-label">
+                <input id="RememberMe" name="RememberMe" type="checkbox" value="true">
+                <input name="RememberMe" type="hidden" value="false">
+                <label for="RememberMe">
+                    Remember me?</label>
+            </div>
+        </fieldset>
+    </div>
+    <span id="authError" style="display: none"></span>
+</div><div class="ui-resizable-handle ui-resizable-n"></div><div class="ui-resizable-handle ui-resizable-e"></div><div class="ui-resizable-handle ui-resizable-s"></div><div class="ui-resizable-handle ui-resizable-w"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1001; "></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1002; "></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1003; "></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1004; "></div><div class="ui-dialog-buttonpane ui-widget-content ui-helper-clearfix"><div class="ui-dialog-buttonset"><button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span class="ui-button-text">Log On</span></button></div></div></div></body></html>

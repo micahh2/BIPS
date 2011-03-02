@@ -52,9 +52,11 @@ function getImageChar(idx) {
 
 // Player
 function Player(x, y) {
+    var that = this;
     this.x = x;
     this.y = y;
-    this.frame = 2;
+    this.frame = 0;
+	this.idleTimer;
 
     this.move = function (dirX, dirY) {
         this.x += dirX;
@@ -63,13 +65,19 @@ function Player(x, y) {
 
     this.updateDirection = function (dirX, dirY) {
         if (dirY === -1)
-            this.frame = 0;
-        if (dirX === 1)
             this.frame = 1;
-        if (dirY === 1)
+        if (dirX === 1)
             this.frame = 2;
-        if (dirX === -1)
+        if (dirY === 1)
             this.frame = 3;
+        if (dirX === -1)
+            this.frame = 4;
+		
+		clearTimeout(this.idleTimer);
+		this.idleTimer = setTimeout(function() {
+			that.frame = 0; 
+			world.drawTile(that.x, that.y);
+		}, 600);
     }
 }
 
@@ -146,26 +154,6 @@ function World(canvas) {
         return (y * mapTilesX) + x;
     };
 
-    var drawTile = function (x, y) {
-        if (isTileOutsideBounds(x, y))
-            throw "Tile drawn out of range: x = " + x.toString() + "; y = " + y.toString();
-        var tile = tiles[that.getTile(x, y)];
-        if (tile === undefined)
-            throw "Attempted to draw undefined tile: letter = " + that.getTile(x, y) + "; x = " + x.toString() + "; y = " + y.toString();
-
-        var srcWidth = tilesImg.width;
-        var srcHeight = srcWidth;
-        var srcOffset = tile.imgIndex;
-        var dest = that.getBounds(x, y);
-        canvasContext.clearRect(dest.left, dest.top, dest.width, dest.height);
-        var tileChar = getImageChar(srcOffset);
-        if (tileChar >= '0' && tileChar <= '3')
-            canvasContext.drawImage(playersImg, 0, players[parseInt(tileChar)].frame * srcHeight, srcWidth, srcHeight, dest.left, dest.top, dest.width, dest.height);
-        else
-            canvasContext.drawImage(tilesImg, 0, srcOffset * srcHeight, srcWidth, srcHeight, dest.left, dest.top, dest.width, dest.height);
-
-    };
-
     var moveTile = function (srcX, srcY, destX, destY) {
         that.setTile(destX, destY, that.getTile(srcX, srcY), true);
         that.setTile(srcX, srcY, ' ', true);
@@ -185,6 +173,27 @@ function World(canvas) {
     //
     // Privileged functions
     //
+
+    this.drawTile = function (x, y) {
+        if (isTileOutsideBounds(x, y))
+            throw "Tile drawn out of range: x = " + x.toString() + "; y = " + y.toString();
+        var tile = tiles[that.getTile(x, y)];
+        if (tile === undefined)
+            throw "Attempted to draw undefined tile: letter = " + that.getTile(x, y) + "; x = " + x.toString() + "; y = " + y.toString();
+
+        var srcWidth = tilesImg.width;
+        var srcHeight = srcWidth;
+        var srcOffset = tile.imgIndex;
+        var dest = that.getBounds(x, y);
+        canvasContext.clearRect(dest.left, dest.top, dest.width, dest.height);
+        var tileChar = getImageChar(srcOffset);
+        if (tileChar >= '0' && tileChar <= '3')
+            canvasContext.drawImage(playersImg, 0, players[parseInt(tileChar)].frame * srcHeight, srcWidth, srcHeight, dest.left, dest.top, dest.width, dest.height);
+        else
+            canvasContext.drawImage(tilesImg, 0, srcOffset * srcHeight, srcWidth, srcHeight, dest.left, dest.top, dest.width, dest.height);
+
+    };
+
     this.setCamera = function () {
         var parent = $(canvas).parent();
         canvas.width = Math.floor(parent.width());
@@ -232,7 +241,7 @@ function World(canvas) {
         that.clearCanvas();
         for (var i = 0; i < mapTilesY; i++)
             for (var j = 0; j < mapTilesX; j++)
-                drawTile(j, i);
+                that.drawTile(j, i);
     };
 
     this.getBounds = function (x, y) {
@@ -272,7 +281,7 @@ function World(canvas) {
         var index = getLetterIndex(x, y);
         if (map.charAt(index) != letter) {
             map = [map.slice(0, index), letter, map.slice(index + 1)].join('');
-            drawTile(x, y);
+            that.drawTile(x, y);
         }
     };
 
