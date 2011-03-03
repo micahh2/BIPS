@@ -203,6 +203,8 @@ function World(canvas) {
 
     this.clearCanvas = function () {
         canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+        //canvasContext.fillStyle = '#A0A0A0';
+        //canvasContext.fillRect(0, 0, canvas.width, canvas.height);
     };
 
     this.getMap = function () {
