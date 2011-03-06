@@ -1,4 +1,4 @@
-﻿// Tiles
+// Tiles
 var tiles = {
     ') ': { // Add column
         imgIndex: 0
@@ -202,11 +202,13 @@ function World(canvas) {
             // Move player if "nextMove" set
             if (tick >= players[a].moveAtTick) {
                 if (players[a].nextMoveX || players[a].nextMoveY) {
+                    numMoves++;
                     if (that.tryMove(players[a].x, players[a].y, players[a].nextMoveX, players[a].nextMoveY)) {
                         moveTile(players[a].x, players[a].y, players[a].x + players[a].nextMoveX, players[a].y + players[a].nextMoveY);
                         players[a].move(players[a].nextMoveX, players[a].nextMoveY);
-                        numMoves++;
                     }
+                    else
+                        numMoves--;
 
                     players[a].nextMoveX = 0;
                     players[a].nextMoveY = 0;
@@ -350,10 +352,8 @@ function World(canvas) {
         }
 
         var index = getLetterIndex(x, y);
-        if (map.charAt(index) != letter) {
-            map = [map.slice(0, index), letter, map.slice(index + 2)].join('');
-            that.drawTile(x, y);
-        }
+        map = [map.slice(0, index), letter, map.slice(index + 2)].join('');
+        that.drawTile(x, y);
     };
 
     this.setTileAtPixel = function (x, y, letter) {
@@ -400,13 +400,14 @@ function World(canvas) {
     this.undoMove = function () {
         if (!numMoves) return;
 
-        mapHist[numMoves] = [];
-        numMoves--;
-
-        for (chg in mapHist[numMoves]) {
+        for (var chg = mapHist[numMoves].length - 1; chg >= 0; chg--) {
             that.setTile(mapHist[numMoves][chg].x, mapHist[numMoves][chg].y, mapHist[numMoves][chg].letter, false);
         }
+
+        mapHist[numMoves] = [];
+        numMoves--;
         this.initMap();
+
         for (var i = 0; i < players.length; i++)
             that.drawTile(players[i].x, players[i].y);
     };
@@ -430,7 +431,6 @@ function World(canvas) {
                         numDiamonds--;
                         if (numDiamonds === 0) {
                             this.restart(); // TODO: Call winning sequence.
-                            return;
                         }
                         return true;
                     case 'b ':
@@ -483,16 +483,13 @@ function World(canvas) {
                     case '  ':
                         that.setTile(destX, destY, 'bw', true);
                         return true;
-                        break;
                     case 'bw':
                         that.setTile(destX, destY, 'w ', true);
                         return true;
-                        break;
                     case 'B ':
                     case 'bB':
                         that.setTile(destX, destY, '  ', true);
                         return true;
-                        break;
                 }
                 break;
         };
