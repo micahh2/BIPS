@@ -4,19 +4,23 @@
         switch (event.keyCode) {
             case 37: // left arrow
             case 65: // 'A' key
-                world.tryMove(0, -1, 0);
+                world.setPlayerMove(0, -1, 0);
+                //world.tryMove(0, -1, 0);
                 break;
             case 38: // up arrow
             case 87: // 'W' key
-                world.tryMove(0, 0, -1);
+                world.setPlayerMove(0, 0, -1);
+                //world.tryMove(0, 0, -1);
                 break;
             case 39: // right arrow
             case 68: // 'D' key
-                world.tryMove(0, 1, 0);
+                world.setPlayerMove(0, 1, 0);
+                //world.tryMove(0, 1, 0);
                 break;
             case 40: // down arrow
             case 83: // 'S' key
-                world.tryMove(0, 0, 1);
+                world.setPlayerMove(0, 0, 1);
+                //world.tryMove(0, 0, 1);
                 break;
             case 85: // 'U' key
                 world.undoMove();
@@ -24,10 +28,10 @@
             case 82: // 'R' key
                 world.restart();
                 break;
-            case 79: // 'O' key
-                world.redoMove();
-                break;
-            //default: alert(event.keyCode);        
+//            case 79: // 'O' key
+//                world.redoMove();
+//                break;
+//            //default: alert(event.keyCode);        
         };
     });
 

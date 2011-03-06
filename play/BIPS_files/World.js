@@ -1,46 +1,58 @@
 ﻿// Tiles
 var tiles = {
-    ')': { // Add column
+    ') ': { // Add column
         imgIndex: 0
     },
-    '(': { // Remove column
+    '( ': { // Remove column
         imgIndex: 1
     },
-    '_': { // Add row
+    '_ ': { // Add row
         imgIndex: 2
     },
-    '^': { // Remove row
+    '^ ': { // Remove row
         imgIndex: 3
     },
-    ' ': { // Blank tile
+    '  ': { // Blank tile
         imgIndex: 4
     },
-    'w': { // wall
+    'w ': { // wall
         imgIndex: 5
     },
-    'b': { // block
+    'b ': { // block
         imgIndex: 6
     },
-    'h': { // half wall
+    'bw': { // wall-forming block
         imgIndex: 7
     },
-    'B': { // bomb
+    'B ': { // bomb
         imgIndex: 8
     },
-    'd': { // diamond
+    'd ': { // diamond
         imgIndex: 9
     },
-    'v': { // bomb-in-block
+    'bB': { // explosive block
         imgIndex: 10
     },
-    'W': { // broken wall
+    'W ': { // damaged wall
         imgIndex: 11
     },
-    '+': { // dynamite item
+    '+ ': { // dynamite item
         imgIndex: 12
     },
-    '0': { // player 1
+    ' 0': { // player 1
         imgIndex: 13
+    },
+    'b(': { // slider block, left
+        imgIndex: 14
+    },
+    'b)': { // slider block, left
+        imgIndex: 15
+    },
+    'b^': { // slider block, left
+        imgIndex: 16
+    },
+    'b_': { // slider block, left
+        imgIndex: 17
     }
 }
 
@@ -52,18 +64,22 @@ function getImageChar(idx) {
 
 // Player
 function Player(x, y) {
-    var that = this;
     this.x = x;
     this.y = y;
     this.frame = 0;
-	this.idleTimer;
+
+    this.nextMoveX = 0;
+    this.nextMoveY = 0;
+
+    this.idleAtTick = -1;
+    this.idlePeriod = 16;
+    this.moveAtTick = -1;
+    this.movePeriod = 4;
 
     this.move = function (dirX, dirY) {
         this.x += dirX;
         this.y += dirY;
-    }
 
-    this.updateDirection = function (dirX, dirY) {
         if (dirY === -1)
             this.frame = 1;
         if (dirX === 1)
@@ -72,15 +88,10 @@ function Player(x, y) {
             this.frame = 3;
         if (dirX === -1)
             this.frame = 4;
-		
-		clearTimeout(this.idleTimer);
-		this.idleTimer = setTimeout(function() {
-			that.frame = 0; 
-			world.drawTile(that.x, that.y);
-		}, 600);
-    }
-}
 
+        world.drawTile(this.x, this.y);
+    };
+};
 
 // World
 function World(canvas) {
@@ -106,6 +117,9 @@ function World(canvas) {
     //
     // Private variables
     //
+    var tick;
+    var updateCallback;
+
     var map;
     var startingMap;
     var canvas = canvas;
@@ -121,11 +135,12 @@ function World(canvas) {
     var cameryY = 0;
 
     var mapHist = [];
-    var moveHist = [];
     var numMoves = 0;
     var numDiamonds = 0;
 
-    // Players
+    var sliderAtTick;
+    var sliderPeriod = 2;
+
     var players = [];
 
     this.initMap = function () {
@@ -135,9 +150,9 @@ function World(canvas) {
         for (var i = 0; i < mapTilesY; i++) {
             for (var j = 0; j < mapTilesX; j++) {
                 var tile = that.getTile(j, i);
-                if (tile >= '0' && tile <= '3')
-                    players[tile - '0'] = new Player(j, i);
-                if (tile === 'd')
+                if (tile == ' 0')
+                    players[0] = new Player(j, i);
+                if (tile === 'd ')
                     numDiamonds++;
             }
         }
@@ -151,28 +166,79 @@ function World(canvas) {
     };
 
     var getLetterIndex = function (x, y) {
-        return (y * mapTilesX) + x;
+        return ((y * mapTilesX) + x) * 2;
     };
 
     var moveTile = function (srcX, srcY, destX, destY) {
         that.setTile(destX, destY, that.getTile(srcX, srcY), true);
-        that.setTile(srcX, srcY, ' ', true);
+        that.setTile(srcX, srcY, '  ', true);
     };
 
-    var addTile = function (x, y, letter) {
+    var addTile = function (x, y, letters) {
         var index = getLetterIndex(x, y);
-        map = [map.slice(0, index), letter, map.slice(index)].join('');
+        map = [map.slice(0, index), letters, map.slice(index)].join('');
     };
 
     var removeTile = function (x, y) {
         var index = getLetterIndex(x, y);
-        map = [map.slice(0, index), map.slice(index + 1)].join('');
+        map = [map.slice(0, index), map.slice(index + 2)].join('');
     };
 
 
     //
     // Privileged functions
     //
+
+    this.update = function () {
+        tick++;
+        // Player activities
+        for (var a in players) {
+            // Set player frame to "idle"
+            if (tick == players[a].idleAtTick) {
+                players[a].frame = 0;
+                that.drawTile(players[a].x, players[a].y);
+            }
+
+            // Move player if "nextMove" set
+            if (tick >= players[a].moveAtTick) {
+                if (players[a].nextMoveX || players[a].nextMoveY) {
+                    if (that.tryMove(players[a].x, players[a].y, players[a].nextMoveX, players[a].nextMoveY)) {
+                        moveTile(players[a].x, players[a].y, players[a].x + players[a].nextMoveX, players[a].y + players[a].nextMoveY);
+                        players[a].move(players[a].nextMoveX, players[a].nextMoveY);
+                        numMoves++;
+                    }
+
+                    players[a].nextMoveX = 0;
+                    players[a].nextMoveY = 0;
+                    players[a].moveAtTick = players[a].movePeriod + tick;
+                    players[a].idleAtTick = players[a].idlePeriod + tick;
+                }
+            }
+        }
+
+        // Sliders
+        if (tick >= sliderAtTick) {
+            sliderAtTick = tick + sliderPeriod;
+            for (var i = 0; i < mapTilesY; i++) {
+                for (var j = 0; j < mapTilesX; j++) {
+                    switch (that.getTile(j, i)) {
+                        case 'b(': that.tryMove(j, i, -1, 0); break;
+                        case 'b)': that.tryMove(j, i, 1, 0); break;
+                        case 'b^': that.tryMove(j, i, 0, -1); break;
+                        case 'b_': that.tryMove(j, i, 0, 1); break;
+                    }
+                }
+            }
+        }
+    };
+
+    this.start = function () {
+        updateCallback = setInterval(that.update, 50);
+    };
+
+    this.pause = function () {
+        clearInterval(updateCallback);
+    };
 
     this.drawTile = function (x, y) {
         if (isTileOutsideBounds(x, y))
@@ -187,8 +253,8 @@ function World(canvas) {
         var dest = that.getBounds(x, y);
         canvasContext.clearRect(dest.left, dest.top, dest.width, dest.height);
         var tileChar = getImageChar(srcOffset);
-        if (tileChar >= '0' && tileChar <= '3')
-            canvasContext.drawImage(playersImg, 0, players[parseInt(tileChar)].frame * srcHeight, srcWidth, srcHeight, dest.left, dest.top, dest.width, dest.height);
+        if (tileChar == ' 0')
+            canvasContext.drawImage(playersImg, 0, players[0].frame * srcHeight, srcWidth, srcHeight, dest.left, dest.top, dest.width, dest.height);
         else
             canvasContext.drawImage(tilesImg, 0, srcOffset * srcHeight, srcWidth, srcHeight, dest.left, dest.top, dest.width, dest.height);
 
@@ -227,11 +293,14 @@ function World(canvas) {
         mapTilesX = w;
         mapTilesY = h;
         mapHist = [];
-        moveHist = [];
         numMoves = 0;
+        tick = 0;
+        sliderAtTick = 0;
 
         that.initMap();
         that.refreshMap();
+        that.pause();
+        that.start();
     };
 
     this.refreshMap = function () {
@@ -265,9 +334,9 @@ function World(canvas) {
 
     this.getTile = function (x, y) {
         if (isTileOutsideBounds(x, y))
-            return 'w';
+            return 'w ';
 
-        return map.charAt(getLetterIndex(x, y));
+        return map.substr(getLetterIndex(x, y), 2);
     };
 
     this.setTile = function (x, y, letter, record) {
@@ -282,7 +351,7 @@ function World(canvas) {
 
         var index = getLetterIndex(x, y);
         if (map.charAt(index) != letter) {
-            map = [map.slice(0, index), letter, map.slice(index + 1)].join('');
+            map = [map.slice(0, index), letter, map.slice(index + 2)].join('');
             that.drawTile(x, y);
         }
     };
@@ -326,111 +395,108 @@ function World(canvas) {
 
     this.restart = function () {
         this.setMap(startingMap, mapTilesX, mapTilesY);
-    }
+    };
 
     this.undoMove = function () {
         if (!numMoves) return;
 
         mapHist[numMoves] = [];
         numMoves--;
-        var previous = moveHist[numMoves];
-        players[previous.player].move(previous.dirX * -1, previous.dirY * -1);
 
         for (chg in mapHist[numMoves]) {
-            that.setTile(mapHist[numMoves][chg].x, mapHist[numMoves][chg].y, mapHist[numMoves][chg].letter);
+            that.setTile(mapHist[numMoves][chg].x, mapHist[numMoves][chg].y, mapHist[numMoves][chg].letter, false);
         }
-    }
+        this.initMap();
+        for (var i = 0; i < players.length; i++)
+            that.drawTile(players[i].x, players[i].y);
+    };
 
-    this.redoMove = function () {
-        var next = moveHist[numMoves];
-        if (next === undefined) return;
-        this.tryMove(next.player, next.dirX, next.dirY, true);
-    }
+    this.setPlayerMove = function (p, dirX, dirY) {
+        players[p].nextMoveX = dirX;
+        players[p].nextMoveY = dirY;
+    };
 
-    this.tryMove = function (p, dirX, dirY, isRedo) {
-        var success = false;
-        var srcX = players[p].x;
-        var srcY = players[p].y;
-        var destX = players[p].x + dirX;
-        var destY = players[p].y + dirY;
-        var blockDestX = srcX + (dirX * 2);
-        var blockDestY = srcY + (dirY * 2);
+    this.tryMove = function (srcX, srcY, dirX, dirY) {
+        var destX = srcX + dirX;
+        var destY = srcY + dirY;
 
-        switch (that.getTile(destX, destY)) {
-            case ' ':
-                success = true;
-                break;
-            case 'd':
-                numDiamonds--;
-                if (numDiamonds === 0) {
-                    this.restart(); // TODO: Call winning sequence.
-                    return;
-                }
-                success = true;
-                break;
-            case 'b':
-
-                switch (that.getTile(blockDestX, blockDestY)) {
-                    case ' ':
-                        that.setTile(blockDestX, blockDestY, 'b', true);
-                        success = true;
-                        break;
-                    case 'B':
-                    case 'v':
-                        that.setTile(blockDestX, blockDestY, ' ', true);
-                        success = true;
-                        break;
+        var sourceTile = that.getTile(srcX, srcY);
+        switch (sourceTile) {
+            case ' 0':
+                switch (that.getTile(destX, destY)) {
+                    case '  ':
+                        return true;
+                    case 'd ':
+                        numDiamonds--;
+                        if (numDiamonds === 0) {
+                            this.restart(); // TODO: Call winning sequence.
+                            return;
+                        }
+                        return true;
+                    case 'b ':
+                    case 'bB':
+                    case 'bw':
+                    case 'b(':
+                    case 'b)':
+                    case 'b^':
+                    case 'b_':
+                        return that.tryMove(destX, destY, dirX, dirY);
                 }
                 break;
-            case 'v':
-                switch (that.getTile(blockDestX, blockDestY)) {
-                    case ' ':
-                        that.setTile(blockDestX, blockDestY, 'v', true);
-                        success = true;
-                        break;
-                    case 'B':
-                    case 'v':
-                    case 'b':
-                    case 'W':
-                    case 'h':
-                        that.setTile(blockDestX, blockDestY, ' ', true);
-                        success = true;
-						break;
+            case 'b ':
+            case 'b(':
+            case 'b)':
+            case 'b^':
+            case 'b_':
+                switch (that.getTile(destX, destY)) {
+                    case '  ':
+                        that.setTile(destX, destY, sourceTile, true);
+                        that.setTile(srcX, srcY, '  ', true);
+                        return true;
+                    case 'B ':
+                    case 'bB':
+                        that.setTile(destX, destY, '  ', true);
+                        that.setTile(srcX, srcY, '  ', true);
+                        return true;
                 }
                 break;
-			case 'h':
-                switch (that.getTile(blockDestX, blockDestY)) {
-                    case ' ':
-                        that.setTile(blockDestX, blockDestY, 'h', true);
-                        success = true;
+            case 'bB':
+                switch (that.getTile(destX, destY)) {
+                    case '  ':
+                        that.setTile(destX, destY, 'bB', true);
+                        return true;
+                    case 'B ':
+                    case 'bB':
+                    case 'b ':
+                    case 'W ':
+                    case 'bw':
+                    case 'b(':
+                    case 'b)':
+                    case 'b^':
+                    case 'b_':
+                        that.setTile(destX, destY, '  ', true);
+                        return true;
+                }
+                break;
+            case 'bw':
+                switch (that.getTile(destX, destY)) {
+                    case '  ':
+                        that.setTile(destX, destY, 'bw', true);
+                        return true;
                         break;
-                    case 'h':
-                        that.setTile(blockDestX, blockDestY, 'w', true);
-                        success = true;
+                    case 'bw':
+                        that.setTile(destX, destY, 'w ', true);
+                        return true;
                         break;
-                    case 'B': 
-                    case 'v':
-                        that.setTile(blockDestX, blockDestY, ' ', true);
-                        success = true;
+                    case 'B ':
+                    case 'bB':
+                        that.setTile(destX, destY, '  ', true);
+                        return true;
                         break;
                 }
                 break;
-        }
+        };
 
-        players[p].updateDirection(dirX, dirY);
-
-        if (success) {
-            moveTile(srcX, srcY, destX, destY);
-            players[p].move(dirX, dirY);
-
-            if (!isRedo) {
-                // Record the move and erase subsequent moves in the recording
-                for (var i = numMoves; moveHist[i] != undefined; i++)
-                    moveHist[i] = undefined;
-                moveHist[numMoves] = { player: p, dirX: dirX, dirY: dirY };
-            }
-
-            numMoves++;
-        }
+        return false;
     };
 }

@@ -1,7 +1,13 @@
 ﻿@font-face {
-	font-family: Optimal;
+	font-family: Pixel;
 	src: url('Pixel.ttf');
 }
+
+@font-face {
+	font-family: mobilman;
+	src: url('mobilman.ttf');
+}
+
 
 html, body
 {
@@ -376,54 +382,7 @@ div#title
 /* Custom CSS rules */
 /*-------------------------------------------------------*/
 
-/* Level Editor */
-
-#editHeaderLeftButtonContainer
-{
-    float: left;
-    width: 150px;
-}
-
-#editHeaderRightButtonContainer
-{
-    float: right;
-    width: 150px;
-}
-
-.editHeaderButton
-{
-    margin: 10px;
-    height: 63px;
-    line-height: 63px;
-    width: 124px;
-    text-align: center;
-}
-
-#editHeaderPaletteContainer
-{
-   
-}
-
-#palette
-{
-    margin: 0px;
-}
-
-#palette li
-{
-    display: block;
-    float: left;
-    margin: 10px;
-    background-color: #222;
-    background-image: url(tiles.gif);
-    border: 1px dashed gray;
-}
-
-#palette li.selected
-{
-    border: 3px solid white;
-    margin: 8px;
-}
+/* Custom buttons */
 
 .actionButton
 {
@@ -431,7 +390,7 @@ div#title
     color: #000 !important;
     background-color: #bbb;
     border: 2px solid #fff;
-    font-family: Optimal;
+    font-family: Pixel;
     font-size: 24px;
     display: inline-block;
     border-radius: 8px;
@@ -441,6 +400,59 @@ div#title
 .actionButton:hover
 {
     background-color: #ccc;
+}
+
+/* Level Editor */
+
+#editHeaderLeftButtonContainer
+{
+    float: left;
+    width: 137px;
+}
+
+#editHeaderRightButtonContainer
+{
+    float: right;
+    width: 138px;
+}
+
+.editHeaderButton
+{
+    margin-top: 10px;
+    margin-left: 16px;
+    height: 41px;
+    line-height: 41px;
+    width: 106px;
+    text-align: center;
+}
+
+#editHeaderPaletteContainer
+{
+   overflow-x: hidden;
+   overflow-y: scroll;
+   max-height: 174px;
+   margin: 0 0 10px;
+}
+
+#palette
+{
+    padding: 0px;
+}
+
+#palette li
+{
+    display: block;
+    float: left;
+    margin: 6px;
+    background-color: #222;
+    background-image: url(tiles.gif);
+    border: 1px dashed gray;
+}
+
+#palette li.selected
+{
+    border: 3px solid white;
+    margin: 4px;
 }
 
 #playgroundContainer
@@ -469,7 +481,7 @@ div#title
     padding: 12px 0 0 6px;
     font-size: 32px;
     text-align: left;
-    font-family: Optimal;
+    font-family: Pixel;
 }
 
 #levelSelectList
@@ -495,6 +507,14 @@ div#title
 #levelSelectList li.selected
 {
     background-color: #233;
+}
+
+.levelSelectListItemSummary
+{
+    font-family: mobilman;
+    font-size: 32px;
+    line-height: 64px;
+    text-align: center;
 }
 
 #levelSelectDetails
