@@ -1,3 +1,10 @@
+// Movement speeds
+var MoveSpeed = {
+    NONE: 0,
+    FAST: 1,
+    NORMAL: 2
+};
+
 // Tiles
 var tiles = {
     ') ': { // Add column
@@ -43,16 +50,20 @@ var tiles = {
         imgIndex: 13
     },
     'b(': { // slider block, left
-        imgIndex: 14
+        imgIndex: 14,
+        movement: MoveSpeed.FAST
     },
     'b)': { // slider block, left
-        imgIndex: 15
+        imgIndex: 15,
+        movement: MoveSpeed.FAST
     },
     'b^': { // slider block, left
-        imgIndex: 16
+        imgIndex: 16,
+        movement: MoveSpeed.FAST
     },
     'b_': { // slider block, left
-        imgIndex: 17
+        imgIndex: 17,
+        movement: MoveSpeed.FAST
     }
 }
 
@@ -117,7 +128,6 @@ function World(canvas) {
     //
     // Private variables
     //
-    var tick;
     var updateCallback;
 
     var map;
@@ -138,8 +148,9 @@ function World(canvas) {
     var numMoves = 0;
     var numDiamonds = 0;
 
-    var sliderAtTick;
-    var sliderPeriod = 2;
+    var tick = 0;
+    var fastTick = { interval: 2, nextTick: 2 };
+    var normalTick = { interval: 4, nextTicki: 4 };
 
     var players = [];
 
@@ -190,7 +201,30 @@ function World(canvas) {
     //
 
     this.update = function () {
-        tick++;
+        var tilesToMove = [];
+        // Fast tick
+        if (tick == fastTick.nextTick) {
+            fastTick.nextTick = tick + fastTick.interval;
+            for (var i = 0; i < mapTilesY; i++) {
+                for (var j = 0; j < mapTilesX; j++) {
+                    var chars = that.getTile(j, i);
+                    if (tiles[chars].movement == MoveSpeed.FAST)
+                        tilesToMove.push({ x: j, y: i, tile: chars });
+                }
+            }
+        }
+
+        for (var t in tilesToMove) {
+            var x = tilesToMove[t].x;
+            var y = tilesToMove[t].y;
+            switch (tilesToMove[t].tile) {
+                case 'b(': that.tryMove(x, y, -1, 0); break;
+                case 'b)': that.tryMove(x, y, 1, 0); break;
+                case 'b^': that.tryMove(x, y, 0, -1); break;
+                case 'b_': that.tryMove(x, y, 0, 1); break;
+            }
+        }
+
         // Player activities
         for (var a in players) {
             // Set player frame to "idle"
@@ -218,20 +252,7 @@ function World(canvas) {
             }
         }
 
-        // Sliders
-        if (tick >= sliderAtTick) {
-            sliderAtTick = tick + sliderPeriod;
-            for (var i = 0; i < mapTilesY; i++) {
-                for (var j = 0; j < mapTilesX; j++) {
-                    switch (that.getTile(j, i)) {
-                        case 'b(': that.tryMove(j, i, -1, 0); break;
-                        case 'b)': that.tryMove(j, i, 1, 0); break;
-                        case 'b^': that.tryMove(j, i, 0, -1); break;
-                        case 'b_': that.tryMove(j, i, 0, 1); break;
-                    }
-                }
-            }
-        }
+        tick++;
     };
 
     this.start = function () {
@@ -297,7 +318,8 @@ function World(canvas) {
         mapHist = [];
         numMoves = 0;
         tick = 0;
-        sliderAtTick = 0;
+        fastTick.nextTick = 0;
+        normalTick.nextTick = 0;
 
         that.initMap();
         that.refreshMap();
