@@ -1,8 +1,8 @@
 // Movement speeds
 var MoveSpeed = {
-    NONE: 0,
-    FAST: 1,
-    NORMAL: 2
+    FAST: { startTick: 0, interval: 2 },
+    NORMAL: { startTick: 1, interval: 4 },
+    SLOW: { startTick: 3, interval: 8 }
 };
 
 // Tiles
@@ -53,15 +53,15 @@ var tiles = {
         imgIndex: 14,
         movement: MoveSpeed.FAST
     },
-    'b)': { // slider block, left
+    'b)': { // slider block, right
         imgIndex: 15,
         movement: MoveSpeed.FAST
     },
-    'b^': { // slider block, left
+    'b^': { // slider block, up
         imgIndex: 16,
         movement: MoveSpeed.FAST
     },
-    'b_': { // slider block, left
+    'b_': { // slider block, down
         imgIndex: 17,
         movement: MoveSpeed.FAST
     }
@@ -149,8 +149,6 @@ function World(canvas) {
     var numDiamonds = 0;
 
     var tick = 0;
-    var fastTick = { interval: 2, nextTick: 2 };
-    var normalTick = { interval: 4, nextTicki: 4 };
 
     var players = [];
 
@@ -199,61 +197,6 @@ function World(canvas) {
     //
     // Privileged functions
     //
-
-    this.update = function () {
-        var tilesToMove = [];
-        // Fast tick
-        if (tick == fastTick.nextTick) {
-            fastTick.nextTick = tick + fastTick.interval;
-            for (var i = 0; i < mapTilesY; i++) {
-                for (var j = 0; j < mapTilesX; j++) {
-                    var chars = that.getTile(j, i);
-                    if (tiles[chars].movement == MoveSpeed.FAST)
-                        tilesToMove.push({ x: j, y: i, tile: chars });
-                }
-            }
-        }
-
-        for (var t in tilesToMove) {
-            var x = tilesToMove[t].x;
-            var y = tilesToMove[t].y;
-            switch (tilesToMove[t].tile) {
-                case 'b(': that.tryMove(x, y, -1, 0); break;
-                case 'b)': that.tryMove(x, y, 1, 0); break;
-                case 'b^': that.tryMove(x, y, 0, -1); break;
-                case 'b_': that.tryMove(x, y, 0, 1); break;
-            }
-        }
-
-        // Player activities
-        for (var a in players) {
-            // Set player frame to "idle"
-            if (tick == players[a].idleAtTick) {
-                players[a].frame = 0;
-                that.drawTile(players[a].x, players[a].y);
-            }
-
-            // Move player if "nextMove" set
-            if (tick >= players[a].moveAtTick) {
-                if (players[a].nextMoveX || players[a].nextMoveY) {
-                    numMoves++;
-                    if (that.tryMove(players[a].x, players[a].y, players[a].nextMoveX, players[a].nextMoveY)) {
-                        moveTile(players[a].x, players[a].y, players[a].x + players[a].nextMoveX, players[a].y + players[a].nextMoveY);
-                        players[a].move(players[a].nextMoveX, players[a].nextMoveY);
-                    }
-                    else
-                        numMoves--;
-
-                    players[a].nextMoveX = 0;
-                    players[a].nextMoveY = 0;
-                    players[a].moveAtTick = players[a].movePeriod + tick;
-                    players[a].idleAtTick = players[a].idlePeriod + tick;
-                }
-            }
-        }
-
-        tick++;
-    };
 
     this.start = function () {
         updateCallback = setInterval(that.update, 50);
@@ -305,7 +248,7 @@ function World(canvas) {
     };
 
     this.setMap = function (chars, w, h) {
-        // Ensure that tiles image has been loaded. If not, retry soon
+        // Ensure that images have been loaded. If not, retry soon
         if (imagesRemainingToLoad > 0) {
             setTimeout(function () { that.setMap(chars, w, h) }, 50);
             return;
@@ -318,8 +261,9 @@ function World(canvas) {
         mapHist = [];
         numMoves = 0;
         tick = 0;
-        fastTick.nextTick = 0;
-        normalTick.nextTick = 0;
+
+        for (var m in MoveSpeed)
+            MoveSpeed[m].nextTick = MoveSpeed[m].startTick;
 
         that.initMap();
         that.refreshMap();
@@ -517,5 +461,67 @@ function World(canvas) {
         };
 
         return false;
+    };
+
+    this.update = function () {
+        // Non-player movement
+        var tilesToMove = [];
+        for (var s in MoveSpeed) {
+            if (tick == MoveSpeed[s].nextTick) {
+                MoveSpeed[s].nextTick = tick + MoveSpeed[s].interval;
+                for (var i = 0; i < mapTilesY; i++) {
+                    for (var j = 0; j < mapTilesX; j++) {
+                        var chars = that.getTile(j, i);
+                        if (tiles[chars].movement == MoveSpeed[s])
+                            tilesToMove.push({ x: j, y: i, tile: chars });
+                    }
+                }
+            }
+        }
+
+        for (var t in tilesToMove) {
+            var x = tilesToMove[t].x;
+            var y = tilesToMove[t].y;
+            var tile = tilesToMove[t].tile;
+
+            // If the tile we are trying to move is gone, I want to know about it.
+            if (that.getTile(x, y) != tile) throw new "Tried to move tile that has already moved!";
+
+            switch (tile) {
+                case 'b(': that.tryMove(x, y, -1, 0); break;
+                case 'b)': that.tryMove(x, y, 1, 0); break;
+                case 'b^': that.tryMove(x, y, 0, -1); break;
+                case 'b_': that.tryMove(x, y, 0, 1); break;
+            }
+        }
+
+        // Player movement and animation
+        for (var a in players) {
+            // Set player frame to "idle"
+            if (tick == players[a].idleAtTick) {
+                players[a].frame = 0;
+                that.drawTile(players[a].x, players[a].y);
+            }
+
+            // Move player if "nextMove" set
+            if (tick >= players[a].moveAtTick) {
+                if (players[a].nextMoveX || players[a].nextMoveY) {
+                    numMoves++;
+                    if (that.tryMove(players[a].x, players[a].y, players[a].nextMoveX, players[a].nextMoveY)) {
+                        moveTile(players[a].x, players[a].y, players[a].x + players[a].nextMoveX, players[a].y + players[a].nextMoveY);
+                        players[a].move(players[a].nextMoveX, players[a].nextMoveY);
+                    }
+                    else
+                        numMoves--;
+
+                    players[a].nextMoveX = 0;
+                    players[a].nextMoveY = 0;
+                    players[a].moveAtTick = players[a].movePeriod + tick;
+                    players[a].idleAtTick = players[a].idlePeriod + tick;
+                }
+            }
+        }
+
+        tick++;
     };
 }
