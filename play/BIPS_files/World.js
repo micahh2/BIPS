@@ -64,7 +64,18 @@ var tiles = {
     'b_': { // slider block, down
         imgIndex: 17,
         movement: MoveSpeed.FAST
+    },
+    's_': { // spikey ball, down
+        imgIndex: 18,
+        movement: MoveSpeed.NORMAL
     }
+}
+
+var directions = {
+    '(': { x: -1, y: 0 },
+    ')': { x: 1, y: 0 },
+    '^': { x: 0, y: -1 },
+    '_': { x: 0, y: 1 }
 }
 
 function getImageChar(idx) {
@@ -85,7 +96,7 @@ function Player(x, y) {
     this.idleAtTick = -1;
     this.idlePeriod = 16;
     this.moveAtTick = -1;
-    this.movePeriod = 4;
+    this.movePeriod = 2;
 
     this.move = function (dirX, dirY) {
         this.x += dirX;
@@ -414,6 +425,7 @@ function World(canvas) {
             case 'b)':
             case 'b^':
             case 'b_':
+            case 's_':
                 switch (that.getTile(destX, destY)) {
                     case '  ':
                         that.setTile(destX, destY, sourceTile, true);
@@ -472,27 +484,24 @@ function World(canvas) {
                 for (var i = 0; i < mapTilesY; i++) {
                     for (var j = 0; j < mapTilesX; j++) {
                         var chars = that.getTile(j, i);
-                        if (tiles[chars].movement == MoveSpeed[s])
-                            tilesToMove.push({ x: j, y: i, tile: chars });
+                        if (tiles[chars].movement == MoveSpeed[s]) {
+                            var dir = directions[chars.charAt(1)];
+                            if ((tick / 2) % 2 == (i + j) % 2)
+                                that.tryMove(j, i, dir.x, dir.y);
+                                //tilesToMove.push({ x: j, y: i, dirX: dir.x, dirY: dir.y, tile: chars });
+                        }
                     }
                 }
             }
         }
 
-        for (var t in tilesToMove) {
-            var x = tilesToMove[t].x;
-            var y = tilesToMove[t].y;
-            var tile = tilesToMove[t].tile;
+        for (var i = 0; i < tilesToMove.length; i++) {
+            var t = tilesToMove[i];
 
-            // If the tile we are trying to move is gone, I want to know about it.
-            if (that.getTile(x, y) != tile) throw new "Tried to move tile that has already moved!";
+            if (t.tile != that.getTile(t.x, t.y)) throw "Attempted to move tile that has already moved";
 
-            switch (tile) {
-                case 'b(': that.tryMove(x, y, -1, 0); break;
-                case 'b)': that.tryMove(x, y, 1, 0); break;
-                case 'b^': that.tryMove(x, y, 0, -1); break;
-                case 'b_': that.tryMove(x, y, 0, 1); break;
-            }
+            if (that.tryMove(t.x, t.y, dirX, dirY))
+                that.makeMove(t.x, t.y, dirX, dirY);
         }
 
         // Player movement and animation
