@@ -1,8 +1,8 @@
 // Movement speeds
 var MoveSpeed = {
     FAST: { startTick: 0, interval: 2 },
-    NORMAL: { startTick: 1, interval: 4 },
-    SLOW: { startTick: 3, interval: 8 }
+    NORMAL: { startTick: 0, interval: 6 },
+    SLOW: { startTick: 0, interval: 8 }
 };
 
 // Tiles
@@ -65,6 +65,18 @@ var tiles = {
         imgIndex: 17,
         movement: MoveSpeed.FAST
     },
+    's(': { // spikey ball, down
+        imgIndex: 18,
+        movement: MoveSpeed.NORMAL
+    },
+    's)': { // spikey ball, down
+        imgIndex: 18,
+        movement: MoveSpeed.NORMAL
+    },
+    's^': { // spikey ball, down
+        imgIndex: 18,
+        movement: MoveSpeed.NORMAL
+    },
     's_': { // spikey ball, down
         imgIndex: 18,
         movement: MoveSpeed.NORMAL
@@ -76,13 +88,20 @@ var directions = {
     ')': { x: 1, y: 0 },
     '^': { x: 0, y: -1 },
     '_': { x: 0, y: 1 }
-}
+};
 
 function getImageChar(idx) {
     for (t in tiles) {
         if (tiles[t].imgIndex === idx) return t;
     }
-}
+};
+
+function getDirectionChar(x, y) {
+    if (x == -1 && y == 0) return '(';
+    if (x == 1 && y == 0) return ')';
+    if (x == 0 && y == -1) return '^';
+    if (x == 0 && y == 1) return '_';
+};
 
 // Player
 function Player(x, y) {
@@ -96,7 +115,7 @@ function Player(x, y) {
     this.idleAtTick = -1;
     this.idlePeriod = 16;
     this.moveAtTick = -1;
-    this.movePeriod = 2;
+    this.movePeriod = 4;
 
     this.move = function (dirX, dirY) {
         this.x += dirX;
@@ -425,6 +444,9 @@ function World(canvas) {
             case 'b)':
             case 'b^':
             case 'b_':
+            case 's(':
+            case 's)':
+            case 's^':
             case 's_':
                 switch (that.getTile(destX, destY)) {
                     case '  ':
@@ -475,9 +497,28 @@ function World(canvas) {
         return false;
     };
 
+    this.aiMove = function (chars, x, y, dirX, dirY) {
+        switch (chars.charAt(0)) {
+            case 's':
+                if (!that.tryMove(x, y, dirX, dirY)) {
+                    dirX *= -1;
+                    dirY *= -1;
+                    if (that.tryMove(x, y, dirX, dirY)) {
+                        chars = chars.charAt(0) + getDirectionChar(dirX, dirY);
+                        that.setTile(x + dirX, y + dirY, chars, true);
+                    }
+                }
+                break;
+            case 'b':
+                that.tryMove(x, y, dirX, dirY);
+                break;
+
+        }
+    };
+    
     this.update = function () {
         // Non-player movement
-        var tilesToMove = [];
+        //var tilesToMove = [];
         for (var s in MoveSpeed) {
             if (tick == MoveSpeed[s].nextTick) {
                 MoveSpeed[s].nextTick = tick + MoveSpeed[s].interval;
@@ -486,23 +527,22 @@ function World(canvas) {
                         var chars = that.getTile(j, i);
                         if (tiles[chars].movement == MoveSpeed[s]) {
                             var dir = directions[chars.charAt(1)];
-                            if ((tick / 2) % 2 == (i + j) % 2)
-                                that.tryMove(j, i, dir.x, dir.y);
-                                //tilesToMove.push({ x: j, y: i, dirX: dir.x, dirY: dir.y, tile: chars });
+                            if ((tick / MoveSpeed[s].interval) % 2 == (i + j) % 2)
+                                that.aiMove(chars, j, i, dir.x, dir.y);
                         }
                     }
                 }
             }
         }
 
-        for (var i = 0; i < tilesToMove.length; i++) {
-            var t = tilesToMove[i];
+//        for (var i = 0; i < tilesToMove.length; i++) {
+//            var t = tilesToMove[i];
 
-            if (t.tile != that.getTile(t.x, t.y)) throw "Attempted to move tile that has already moved";
+//            if (t.tile != that.getTile(t.x, t.y)) throw "Attempted to move tile that has already moved";
 
-            if (that.tryMove(t.x, t.y, dirX, dirY))
-                that.makeMove(t.x, t.y, dirX, dirY);
-        }
+//            if (that.tryMove(t.x, t.y, dirX, dirY))
+//                that.makeMove(t.x, t.y, dirX, dirY);
+//        }
 
         // Player movement and animation
         for (var a in players) {
